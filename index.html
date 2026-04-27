@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZPL Label Maker - Zebra ZD421</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <div class="header-left">
+            <h1>🏷️ ZPL Label Maker</h1>
+            <span class="subtitle">Zebra ZD421</span>
+        </div>
+        <div class="header-right">
+            <span class="label-count" id="labelCount">0 labels</span>
+            <button class="btn btn-icon" id="helpBtn" title="Syntax Help">?</button>
+            <button class="btn btn-icon" id="settingsBtn" title="Settings">⚙️</button>
+        </div>
+    </header>
+
+    <main>
+        <div class="editor-panel">
+            <div class="panel-header">
+                <h2>Label Input</h2>
+                <div class="editor-actions">
+                    <button class="btn btn-sm" id="viewZplBtn">View ZPL</button>
+                    <button class="btn btn-sm btn-primary" id="copyZplBtn">📋 Copy ZPL</button>
+                    <button class="btn btn-sm btn-success" id="printBtn">🖨️ Print</button>
+                </div>
+            </div>
+            <textarea id="labelInput" placeholder="Type your labels here...
+
+Product A
+x2
+
+Product B
+Specialty Item
+
+#Header Text
+*Bold text*
+<>Centered text
+---
+[barcode:CODE128:12345]
+
+Separate labels with blank lines.
+Use x2, x3, etc. for multiple copies."></textarea>
+        </div>
+
+        <div class="preview-panel">
+            <div class="panel-header">
+                <h2>Preview</h2>
+                <div class="preview-nav">
+                    <button class="btn btn-sm" id="prevLabel">◀</button>
+                    <span id="previewIndicator">No labels</span>
+                    <button class="btn btn-sm" id="nextLabel">▶</button>
+                </div>
+            </div>
+            <div class="preview-container" id="previewContainer">
+                <div class="preview-empty">Enter label text to see preview</div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Settings Modal -->
+    <div class="modal" id="settingsModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Settings</h2>
+                <button class="btn btn-icon modal-close" id="closeSettings">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="setting-group">
+                    <label>Label Size</label>
+                    <select id="labelSize">
+                        <option value="2.25x1.25">2.25" × 1.25" (Standard)</option>
+                        <option value="4x6">4" × 6" (Shipping)</option>
+                        <option value="2x1">2" × 1" (Small)</option>
+                        <option value="3x2">3" × 2" (Medium)</option>
+                        <option value="4x2">4" × 2" (Address)</option>
+                        <option value="custom">Custom</option>
+                    </select>
+                    <div class="custom-size" id="customSize" style="display:none">
+                        <input type="number" id="customWidth" placeholder="Width (in)" step="0.25" min="0.5" max="8">
+                        <span>×</span>
+                        <input type="number" id="customHeight" placeholder="Height (in)" step="0.25" min="0.5" max="12">
+                    </div>
+                </div>
+                <div class="setting-group">
+                    <label>Darkness (0-30)</label>
+                    <input type="range" id="darkness" min="0" max="30" value="15">
+                    <span class="range-value" id="darknessValue">15</span>
+                </div>
+                <div class="setting-group">
+                    <label>Print Speed (in/sec)</label>
+                    <input type="range" id="printSpeed" min="2" max="6" value="4">
+                    <span class="range-value" id="speedValue">4</span>
+                </div>
+                <div class="setting-group">
+                    <label>Font Size</label>
+                    <select id="fontSize">
+                        <option value="small">Small</option>
+                        <option value="medium" selected>Medium</option>
+                        <option value="large">Large</option>
+                        <option value="xl">XL</option>
+                    </select>
+                </div>
+                <div class="setting-group">
+                    <label>Orientation</label>
+                    <select id="orientation">
+                        <option value="portrait">Portrait</option>
+                        <option value="landscape">Landscape</option>
+                    </select>
+                </div>
+                <hr>
+                <div class="setting-group">
+                    <label>Printer IP Address</label>
+                    <input type="text" id="printerIp" placeholder="192.168.1.100">
+                </div>
+                <div class="setting-group">
+                    <label>Printer Port</label>
+                    <input type="number" id="printerPort" value="9100">
+                </div>
+                <div class="setting-group">
+                    <label>Print Server URL</label>
+                    <input type="text" id="printServerUrl" value="http://localhost:5555">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ZPL View Modal -->
+    <div class="modal" id="zplModal">
+        <div class="modal-content modal-wide">
+            <div class="modal-header">
+                <h2>Generated ZPL</h2>
+                <button class="btn btn-icon modal-close" id="closeZpl">✕</button>
+            </div>
+            <div class="modal-body">
+                <pre id="zplOutput" class="zpl-code"></pre>
+            </div>
+        </div>
+    </div>
+
+    <!-- Help Modal -->
+    <div class="modal" id="helpModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Syntax Reference</h2>
+                <button class="btn btn-icon modal-close" id="closeHelp">✕</button>
+            </div>
+            <div class="modal-body help-content">
+                <table>
+                    <tr><td><code>blank line</code></td><td>Separates labels</td></tr>
+                    <tr><td><code>x2</code></td><td>Print 2 copies (any number)</td></tr>
+                    <tr><td><code>---</code></td><td>Horizontal line</td></tr>
+                    <tr><td><code>*text*</code></td><td>Bold text</td></tr>
+                    <tr><td><code>#text</code></td><td>Large header text</td></tr>
+                    <tr><td><code>>text</code></td><td>Right-aligned text</td></tr>
+                    <tr><td><code>&lt;&gt;text</code></td><td>Center-aligned text</td></tr>
+                    <tr><td><code>[barcode:CODE128:data]</code></td><td>Code 128 barcode</td></tr>
+                    <tr><td><code>[qr:data]</code></td><td>QR code</td></tr>
+                </table>
+                <h3>Example</h3>
+                <pre>
+#Product Name
+*SKU: ABC-123*
+<>$9.99
+---
+[barcode:CODE128:ABC123]
+x2</pre>
+            </div>
+        </div>
+    </div>
+
+    <!-- Print Menu -->
+    <div class="modal" id="printModal">
+        <div class="modal-content modal-sm">
+            <div class="modal-header">
+                <h2>Print Labels</h2>
+                <button class="btn btn-icon modal-close" id="closePrint">✕</button>
+            </div>
+            <div class="modal-body">
+                <button class="btn btn-block" id="printCopy">📋 Copy ZPL to Clipboard</button>
+                <button class="btn btn-block" id="printBrowser">🖨️ Browser Print (Preview)</button>
+                <button class="btn btn-block btn-primary" id="printNetwork">🌐 Send to Printer (Network)</button>
+                <p class="print-hint">Network print requires print-server.py running locally.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast"></div>
+
+    <script src="app.js"></script>
+</body>
+</html>
