@@ -38,7 +38,7 @@
             orientation: 'portrait',
             printerIp: '10.0.1.161',
             printerPort: 9100,
-            printServerUrl: 'http://localhost:5555'
+            printServerUrl: ''
         };
         try {
             const saved = JSON.parse(localStorage.getItem('zplSettings') || '{}');
@@ -57,7 +57,7 @@
             orientation: $('orientation').value,
             printerIp: $('printerIp').value,
             printerPort: parseInt($('printerPort').value) || 9100,
-            printServerUrl: $('printServerUrl').value
+            printServerUrl: ''
         };
         localStorage.setItem('zplSettings', JSON.stringify(s));
         updatePreview();
@@ -76,7 +76,6 @@
         $('orientation').value = s.orientation;
         $('printerIp').value = s.printerIp;
         $('printerPort').value = s.printerPort;
-        $('printServerUrl').value = s.printServerUrl;
         $('customSize').style.display = s.labelSize === 'custom' ? 'flex' : 'none';
     }
 
@@ -314,7 +313,7 @@
         if (!s.printerIp) { showToast('Set printer IP in settings first', 'error'); return; }
 
         try {
-            const resp = await fetch(s.printServerUrl + '/print', {
+            const resp = await fetch('/print', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ zpl, ip: s.printerIp, port: s.printerPort })
@@ -364,7 +363,7 @@
         $('printSpeed').addEventListener('input', function() { $('speedValue').textContent = this.value; });
         
         // Save on any settings change
-        ['labelSize','customWidth','customHeight','darkness','printSpeed','fontSize','orientation','printerIp','printerPort','printServerUrl'].forEach(id => {
+        ['labelSize','customWidth','customHeight','darkness','printSpeed','fontSize','orientation','printerIp','printerPort'].forEach(id => {
             $(id).addEventListener('change', saveSettings);
         });
 
