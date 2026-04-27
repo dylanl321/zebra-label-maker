@@ -36,7 +36,7 @@
             printSpeed: 4,
             fontSize: 'medium',
             orientation: 'portrait',
-            printerIp: '',
+            printerIp: '10.0.1.161',
             printerPort: 9100,
             printServerUrl: 'http://localhost:5555'
         };
