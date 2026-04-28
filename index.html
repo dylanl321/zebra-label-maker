@@ -29,6 +29,12 @@
                     <button class="btn btn-sm btn-success" id="printBtn">🖨️ Print</button>
                 </div>
             </div>
+            <div class="size-buttons" id="sizeButtons">
+                <span class="size-label">Size:</span>
+                <button class="size-btn" data-size="1x1">1×1</button>
+                <button class="size-btn active" data-size="2x1">2×1</button>
+                <button class="size-btn" data-size="4x6">4×6 Shipping</button>
+            </div>
             <textarea id="labelInput" placeholder="Type your labels here...
 
 Product A
@@ -70,22 +76,6 @@ Use x2, x3, etc. for multiple copies."></textarea>
                 <button class="btn btn-icon modal-close" id="closeSettings">✕</button>
             </div>
             <div class="modal-body">
-                <div class="setting-group">
-                    <label>Label Size</label>
-                    <select id="labelSize">
-                        <option value="2.25x1.25">2.25" × 1.25" (Standard)</option>
-                        <option value="4x6">4" × 6" (Shipping)</option>
-                        <option value="2x1">2" × 1" (Small)</option>
-                        <option value="3x2">3" × 2" (Medium)</option>
-                        <option value="4x2">4" × 2" (Address)</option>
-                        <option value="custom">Custom</option>
-                    </select>
-                    <div class="custom-size" id="customSize" style="display:none">
-                        <input type="number" id="customWidth" placeholder="Width (in)" step="0.25" min="0.5" max="8">
-                        <span>×</span>
-                        <input type="number" id="customHeight" placeholder="Height (in)" step="0.25" min="0.5" max="12">
-                    </div>
-                </div>
                 <div class="setting-group">
                     <label>Darkness (0-30)</label>
                     <input type="range" id="darkness" min="0" max="30" value="15">

@@ -7,6 +7,7 @@
     const DPI = 203;
     const FONT_SIZES = { small: 20, medium: 30, large: 40, xl: 56 };
     const LABEL_PRESETS = {
+        '1x1': { w: 1, h: 1 },
         '2.25x1.25': { w: 2.25, h: 1.25 },
         '4x6': { w: 4, h: 6 },
         '2x1': { w: 2, h: 1 },
@@ -26,12 +27,36 @@
     const labelCountEl = $('labelCount');
     const previewIndicator = $('previewIndicator');
 
+    // --- Unicode fraction map ---
+    const FRACTION_MAP = {
+        '1/2': '½', '1/4': '¼', '3/4': '¾',
+        '1/8': '⅛', '3/8': '⅜', '5/8': '⅝', '7/8': '⅞',
+        '1/3': '⅓', '2/3': '⅔',
+        '1/5': '⅕', '2/5': '⅖', '3/5': '⅗', '4/5': '⅘',
+        '1/6': '⅙', '5/6': '⅚',
+        '1/7': '⅐', '1/9': '⅑', '1/10': '⅒'
+    };
+
+    function convertFractions(text) {
+        // Match patterns like "1 1/2" (mixed) or standalone "1/2"
+        return text.replace(/(\d+)\s+(\d+\/\d+)/g, (match, whole, frac) => {
+            const uni = FRACTION_MAP[frac];
+            return uni ? whole + uni : match;
+        }).replace(/\b(\d+\/\d+)\b/g, (match) => {
+            return FRACTION_MAP[match] || match;
+        });
+    }
+
+    function toTitleCase(text) {
+        return text.replace(/\w\S*/g, (word) => {
+            return word.charAt(0).toUpperCase() + word.substr(1).toLowerCase();
+        });
+    }
+
     // --- Settings ---
     function getSettings() {
         const defaults = {
-            labelSize: '2.25x1.25',
-            customWidth: 2.25,
-            customHeight: 1.25,
+            labelSize: '2x1',
             darkness: 15,
             printSpeed: 4,
             fontSize: 'medium',
@@ -48,9 +73,7 @@
 
     function saveSettings() {
         const s = {
-            labelSize: $('labelSize').value,
-            customWidth: parseFloat($('customWidth').value) || 2.25,
-            customHeight: parseFloat($('customHeight').value) || 1.25,
+            labelSize: document.querySelector('.size-btn.active')?.dataset.size || '2x1',
             darkness: parseInt($('darkness').value),
             printSpeed: parseInt($('printSpeed').value),
             fontSize: $('fontSize').value,
@@ -65,9 +88,10 @@
 
     function loadSettings() {
         const s = getSettings();
-        $('labelSize').value = s.labelSize;
-        $('customWidth').value = s.customWidth;
-        $('customHeight').value = s.customHeight;
+        // Set active size button
+        document.querySelectorAll('.size-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.size === s.labelSize);
+        });
         $('darkness').value = s.darkness;
         $('darknessValue').textContent = s.darkness;
         $('printSpeed').value = s.printSpeed;
@@ -76,20 +100,13 @@
         $('orientation').value = s.orientation;
         $('printerIp').value = s.printerIp;
         $('printerPort').value = s.printerPort;
-        $('customSize').style.display = s.labelSize === 'custom' ? 'flex' : 'none';
     }
 
     function getLabelDimensions() {
         const s = getSettings();
-        let w, h;
-        if (s.labelSize === 'custom') {
-            w = s.customWidth;
-            h = s.customHeight;
-        } else {
-            const preset = LABEL_PRESETS[s.labelSize];
-            w = preset.w;
-            h = preset.h;
-        }
+        const preset = LABEL_PRESETS[s.labelSize] || LABEL_PRESETS['2x1'];
+        let w = preset.w;
+        let h = preset.h;
         if (s.orientation === 'landscape') [w, h] = [h, w];
         return { w, h, wDots: Math.round(w * DPI), hDots: Math.round(h * DPI) };
     }
@@ -139,21 +156,24 @@
                 const qrMatch = trimmed.match(/^\[qr:(.+)\]$/i);
                 if (qrMatch) return { type: 'qr', data: qrMatch[1] };
                 
+                // Helper: apply title case and fractions to text
+                const processText = (t) => convertFractions(toTitleCase(t));
+
                 // Header
-                if (trimmed.startsWith('#')) return { type: 'text', text: trimmed.slice(1).trim(), style: 'header' };
+                if (trimmed.startsWith('#')) return { type: 'text', text: processText(trimmed.slice(1).trim()), style: 'header' };
                 
                 // Center
-                if (trimmed.startsWith('<>')) return { type: 'text', text: trimmed.slice(2).trim(), style: 'center' };
+                if (trimmed.startsWith('<>')) return { type: 'text', text: processText(trimmed.slice(2).trim()), style: 'center' };
                 
                 // Right
-                if (trimmed.startsWith('>')) return { type: 'text', text: trimmed.slice(1).trim(), style: 'right' };
+                if (trimmed.startsWith('>')) return { type: 'text', text: processText(trimmed.slice(1).trim()), style: 'right' };
                 
                 // Bold
                 const boldMatch = trimmed.match(/^\*(.+)\*$/);
-                if (boldMatch) return { type: 'text', text: boldMatch[1], style: 'bold' };
+                if (boldMatch) return { type: 'text', text: processText(boldMatch[1]), style: 'bold' };
                 
                 // Normal
-                return { type: 'text', text: trimmed, style: 'normal' };
+                return { type: 'text', text: processText(trimmed), style: 'normal' };
             });
 
             result.push({ lines: parsedLines, qty });
@@ -193,13 +213,16 @@
 
             const baseFontSize = { small: 11, medium: 14, large: 17, xl: 22 }[getSettings().fontSize] || 14;
 
+            const wrapper = document.createElement('div');
+            wrapper.className = 'label-content-wrapper';
+
             label.lines.forEach(line => {
                 if (line.type === 'separator') {
-                    el.innerHTML += '<div class="label-separator"></div>';
+                    wrapper.innerHTML += '<div class="label-separator"></div>';
                 } else if (line.type === 'barcode') {
-                    el.innerHTML += `<div class="label-barcode">||||| ${line.data} |||||</div>`;
+                    wrapper.innerHTML += `<div class="label-barcode">||||| ${line.data} |||||</div>`;
                 } else if (line.type === 'qr') {
-                    el.innerHTML += `<div class="label-qr">QR</div>`;
+                    wrapper.innerHTML += `<div class="label-qr">QR</div>`;
                 } else {
                     let cls = 'label-line';
                     let style = `font-size:${baseFontSize}px;`;
@@ -207,10 +230,11 @@
                     if (line.style === 'header') { cls += ' header'; style = `font-size:${baseFontSize * 1.5}px;font-weight:700;`; }
                     if (line.style === 'right') cls += ' right';
                     if (line.style === 'center') cls += ' center';
-                    el.innerHTML += `<div class="${cls}" style="${style}">${escapeHtml(line.text)}</div>`;
+                    wrapper.innerHTML += `<div class="${cls}" style="${style}">${escapeHtml(line.text)}</div>`;
                 }
             });
 
+            el.appendChild(wrapper);
             previewContainer.appendChild(el);
         });
     }
@@ -228,9 +252,21 @@
         let zpl = '';
 
         labels.forEach(label => {
-            let y = 30;
             const lineHeight = fontSize + 12;
             const headerLineHeight = headerSize + 16;
+
+            // Calculate total content height for vertical centering
+            let totalHeight = 0;
+            label.lines.forEach(line => {
+                if (line.type === 'separator') totalHeight += 16;
+                else if (line.type === 'barcode') totalHeight += 90;
+                else if (line.type === 'qr') totalHeight += 120;
+                else if (line.style === 'header') totalHeight += headerLineHeight;
+                else totalHeight += lineHeight;
+            });
+
+            // Start y offset to center vertically
+            let y = Math.max(10, Math.round((dim.hDots - totalHeight) / 2));
 
             zpl += '^XA\n';
             zpl += `^PW${dim.wDots}\n`;
@@ -244,13 +280,16 @@
                     zpl += `^FO10,${y}^GB${dim.wDots - 20},1,2^FS\n`;
                     y += 16;
                 } else if (line.type === 'barcode') {
-                    zpl += `^FO20,${y}^BY2,2,60^BCN,60,Y,N,N^FD${line.data}^FS\n`;
+                    // Center barcode horizontally
+                    const barcodeWidth = line.data.length * 2 * 11; // approximate
+                    const bx = Math.max(20, Math.round((dim.wDots - barcodeWidth) / 2));
+                    zpl += `^FO${bx},${y}^BY2,2,60^BCN,60,Y,N,N^FD${line.data}^FS\n`;
                     y += 90;
                 } else if (line.type === 'qr') {
-                    zpl += `^FO20,${y}^BQN,2,5^FDQA,${line.data}^FS\n`;
+                    const qx = Math.round((dim.wDots - 100) / 2);
+                    zpl += `^FO${qx},${y}^BQN,2,5^FDQA,${line.data}^FS\n`;
                     y += 120;
                 } else {
-                    let x = 20;
                     let fSize = fontSize;
                     let fWidth = fontSize;
 
@@ -261,13 +300,12 @@
                         fWidth = fontSize + 8;
                     }
 
-                    if (line.style === 'center') {
-                        x = Math.round(dim.wDots / 2);
-                        zpl += `^FO0,${y}^A0N,${fSize},${fWidth}^FB${dim.wDots},1,0,C^FD${line.text}^FS\n`;
-                    } else if (line.style === 'right') {
+                    // Use ^FB field block for centering all text
+                    if (line.style === 'right') {
                         zpl += `^FO0,${y}^A0N,${fSize},${fWidth}^FB${dim.wDots - 20},1,0,R^FD${line.text}^FS\n`;
                     } else {
-                        zpl += `^FO${x},${y}^A0N,${fSize},${fWidth}^FD${line.text}^FS\n`;
+                        // Center justify for all text (including normal, bold, header, center)
+                        zpl += `^FO0,${y}^A0N,${fSize},${fWidth}^FB${dim.wDots},1,0,C^FD${line.text}^FS\n`;
                     }
 
                     y += (line.style === 'header') ? headerLineHeight : lineHeight;
@@ -355,15 +393,20 @@
         // Settings
         $('settingsBtn').addEventListener('click', () => openModal('settingsModal'));
         $('closeSettings').addEventListener('click', () => { saveSettings(); closeModal('settingsModal'); });
-        $('labelSize').addEventListener('change', function() {
-            $('customSize').style.display = this.value === 'custom' ? 'flex' : 'none';
-            saveSettings();
-        });
         $('darkness').addEventListener('input', function() { $('darknessValue').textContent = this.value; });
         $('printSpeed').addEventListener('input', function() { $('speedValue').textContent = this.value; });
         
+        // Size buttons
+        document.querySelectorAll('.size-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.size-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                saveSettings();
+            });
+        });
+
         // Save on any settings change
-        ['labelSize','customWidth','customHeight','darkness','printSpeed','fontSize','orientation','printerIp','printerPort'].forEach(id => {
+        ['darkness','printSpeed','fontSize','orientation','printerIp','printerPort'].forEach(id => {
             $(id).addEventListener('change', saveSettings);
         });
 

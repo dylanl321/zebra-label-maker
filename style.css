@@ -225,6 +225,21 @@ textarea::placeholder {
     padding: 8px;
     display: flex;
     flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.label-content-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    flex: 1;
+}
+
+.label-content-wrapper .label-line {
+    text-align: center;
 }
 
 .label-preview .qty-badge {
@@ -498,6 +513,45 @@ hr {
         box-shadow: none;
         border: 1px solid #ccc;
     }
+}
+
+/* Size toggle buttons */
+.size-buttons {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    background: var(--card-bg);
+    border-bottom: 1px solid var(--border);
+}
+
+.size-label {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    margin-right: 4px;
+}
+
+.size-btn {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    border: 1px solid var(--border);
+    padding: 5px 14px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    transition: all 0.2s;
+}
+
+.size-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+.size-btn.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: white;
+    font-weight: 600;
 }
 
 /* Responsive */
